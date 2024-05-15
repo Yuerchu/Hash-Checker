@@ -4,11 +4,76 @@ from tkinter import filedialog
 from tkinter import ttk
 import hashlib
 import os
+import configparser
 import threading
 from sv_ttk import *
 
+# 读取ini文件，没有则创建
+config = configparser.ConfigParser()
+config.read('sv_config.ini', encoding='utf-8')
+try:
+    theme = config.get('config','theme')
+    lang = config.get('config','lang')
+except:
+    # 程序首次启动，需要初始化
+    config.add_section('config')
+    config.set('config','theme','light')
+    config.set('config','lang','zh_cn')
+    with open('sv_config.ini', 'w') as configfile:
+        config.write(configfile)
+    
+    theme = config.get('config','theme')
+    lang = config.get('config','lang')
+
 md5 = "0"
 sha256 = "0"
+
+#语言相关
+zh_cn = {'load':'选择文件：','select':'浏览……','sizeprepare':'大小：等待导入','progress':'        进度：','result':'输出结果：','option':'首选项'}
+en_us = {'load':'File dir:','select':'Open..','sizeprepare':'size:No file','progress':'Progress:','result':'Result:','option':'Option'}
+
+lang = zh_cn
+
+# 首选项相关代码
+def StartOptionPage():
+    def SaveOption():
+        ThemeChoose = ThemeCombobox.get()
+        if ThemeChoose == '浅色 Light':
+            config.set('config','theme','light')
+            set_theme('light')
+            theme = 'light'
+        elif ThemeChoose == '深色 Dark':
+            config.set('config','theme','dark')
+            set_theme('dark')
+            theme = 'dark'
+        with open('sv_config.ini', 'w') as configfile:
+            config.write(configfile)
+            OptionPage.destroy()
+    
+    OptionPage = tk.Tk()
+    OptionPage.title("Hash Checker 首选项")
+    OptionPage.geometry(f"{700}x{300}")
+    OptionPage.iconbitmap('.\\icon.ico')
+    OptionPage.resizable(width=False, height=False)
+
+    WarningLabel = ttk.Label(OptionPage, text="将程序作为携带版使用时，请一并拷贝config.ini文件，否则设置不会被保存")
+    WarningLabel.place(x=20,y=25)
+
+    ThemeLabel = ttk.Label(OptionPage, text="主题")
+    ThemeLabel.place(x=20, y=60)
+
+    ThemeCombobox = ttk.Combobox(OptionPage, width=15,)
+    if theme == 'light':
+        ThemeCombobox['values'] = ('浅色 Light','深色 Dark')
+    elif theme == 'dark':
+        ThemeCombobox['values'] = ('深色 Dark','浅色 Light')
+    ThemeCombobox.current(0)
+    ThemeCombobox.place(x=150, y=60)
+
+    SaveButton = ttk.Button(OptionPage, text="保存",command=SaveOption)
+    SaveButton.place(x=575, y=250)
+
+    OptionPage.mainloop()
 
 def OpenFile():
     file_path = filedialog.askopenfilename()
@@ -99,21 +164,30 @@ CHUNK_SIZE_THRESHOLD = 8 * 1024 * 1024 * 1024  # 8 GB
 CHUNK_SIZE = 4096
 
 root = tk.Tk()
-root.title("Hash Checker V0.1.1")
+root.title("Hash Checker V0.1.2 开发版本")
 root.geometry(f"{700}x{300}")
-# root.iconbitmap('\\icon.ico')
+root.iconbitmap('.\\icon.ico')
 root.resizable(width=False, height=False)
 
-InputFileLabel = ttk.Label(text="选择文件：")
+InputFileLabel = ttk.Label(text=lang['load'])
 InputFileLabel.place(x=20, y=25)
+
 InputFileEntry = ttk.Entry()
 InputFileEntry.place(x=90, y=20)
-button = ttk.Button(root, text="浏览……", command=OpenFile)
+
+button = ttk.Button(root, text=lang['select'], command=OpenFile)
 button.place(x=300, y=20)
+
 FileSize = ttk.Label(text="大小：等待导入")
 FileSize.place(x=400, y=25)
-ProgressLabel = ttk.Label(text="进度：")
-ProgressLabel.place(x=50, y=75)
+
+OptionButton = ttk.Button(root,text=lang['option'],command=StartOptionPage)
+OptionButton.place(x=600, y=20)
+
+
+
+ProgressLabel = ttk.Label(text=lang['progress'])
+ProgressLabel.place(x=20, y=75)
 progress_var = tk.IntVar()
 progressBar = ttk.Progressbar(root, variable=progress_var, maximum=100)
 progressBar.place(x=100, y=85, width=300)
@@ -142,6 +216,6 @@ Version.place(x=20, y=262.5)
 button = ttk.Button(root, text="开始", command=StartCal)
 button.place(x=625, y=250)
 
-set_theme("light")
+set_theme(config.get("config", "theme"))
 
 root.mainloop()
